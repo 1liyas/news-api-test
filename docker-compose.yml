@@ -1,0 +1,53 @@
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: newsdb
+      POSTGRES_USER: newsuser
+      POSTGRES_PASSWORD: newspassword
+    ports:
+      - "5432:5432"
+
+  user-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.user
+    container_name: user-backend
+    command: gunicorn news_project.wsgi:application --bind 0.0.0.0:8000 --env DJANGO_SETTINGS_MODULE=news_project.settings.user
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    volumes:
+      - static_volume:/app/staticfiles  
+
+  admin-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    container_name: admin-backend
+    command: python manage.py runserver 0.0.0.0:8001 --settings=news_project.settings.admin
+    ports:
+      - "8001:8001"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    volumes:
+      - static_volume:/app/static
+
+  redis:
+    image: redis:7.2
+    container_name: redis
+    ports:
+      - "6379:6379"  
+
+volumes:
+  postgres_data:
+  static_volume:
